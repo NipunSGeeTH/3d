@@ -1,27 +1,24 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" />
-    <title>Multi-object AR</title>
+    <title>Multi-Object AR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/motion-controllers.module.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/webxr/ARButton.js"></script>
     <style>
       body {
         margin: 0;
         overflow: hidden;
       }
-      canvas {
-        display: block;
-      }
     </style>
   </head>
   <body>
     <script>
-      let camera, scene, renderer;
-      let controller;
+      let scene, camera, renderer, controller;
 
       init();
+
       function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera();
@@ -30,101 +27,34 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.xr.enabled = true;
         document.body.appendChild(renderer.domElement);
-        document.body.appendChild(THREE.ARButton.createButton(renderer));
 
-        // Add lights
+        document.body.appendChild(THREE.ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+
         const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
         scene.add(light);
 
-        // Load objects
+        // Load models
         const loader = new THREE.GLTFLoader();
 
-        function addModel(url, x, y, z) {
+        function loadModel(url, x, y, z, scale = 0.5) {
           loader.load(url, function (gltf) {
             const model = gltf.scene;
             model.position.set(x, y, z);
-            model.scale.set(0.5, 0.5, 0.5);
+            model.scale.set(scale, scale, scale);
             scene.add(model);
           });
         }
 
-        // Add models to the world
-        addModel("https://modelviewer.dev/shared-assets/models/House.glb", 0, 0, -1);
-        addModel("https://modelviewer.dev/shared-assets/models/Astronaut.glb", 0.5, 0, -1.2);
-        addModel("https://modelviewer.dev/shared-assets/models/Ambulance.glb", -0.5, 0, -1.2);
-        addModel("https://raw.githubusercontent.com/nipun2sinhala/ar-assets/main/rainbow.glb", 0, 0.5, -2);
+        // 🏠 + 🐶 + 🚗 + 🌈
+        loadModel("https://modelviewer.dev/shared-assets/models/House.glb", 0, 0, -1);
+        loadModel("https://modelviewer.dev/shared-assets/models/Astronaut.glb", 0.5, 0, -1.5);
+        loadModel("https://modelviewer.dev/shared-assets/models/Ambulance.glb", -0.5, 0, -1.5);
+        loadModel("https://raw.githubusercontent.com/nipun2sinhala/ar-assets/main/rainbow.glb", 0, 0.5, -2);
 
-        renderer.setAnimationLoop(function () {
+        renderer.setAnimationLoop(() => {
           renderer.render(scene, camera);
         });
       }
     </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/loaders/GLTFLoader.js"></script>
-  </body>
-</html>
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Multi-object AR</title>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/motion-controllers.module.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/webxr/ARButton.js"></script>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-      }
-      canvas {
-        display: block;
-      }
-    </style>
-  </head>
-  <body>
-    <script>
-      let camera, scene, renderer;
-      let controller;
-
-      init();
-      function init() {
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera();
-
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.xr.enabled = true;
-        document.body.appendChild(renderer.domElement);
-        document.body.appendChild(THREE.ARButton.createButton(renderer));
-
-        // Add lights
-        const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-        scene.add(light);
-
-        // Load objects
-        const loader = new THREE.GLTFLoader();
-
-        function addModel(url, x, y, z) {
-          loader.load(url, function (gltf) {
-            const model = gltf.scene;
-            model.position.set(x, y, z);
-            model.scale.set(0.5, 0.5, 0.5);
-            scene.add(model);
-          });
-        }
-
-        // Add models to the world
-        addModel("https://modelviewer.dev/shared-assets/models/House.glb", 0, 0, -1);
-        addModel("https://modelviewer.dev/shared-assets/models/Astronaut.glb", 0.5, 0, -1.2);
-        addModel("https://modelviewer.dev/shared-assets/models/Ambulance.glb", -0.5, 0, -1.2);
-        addModel("https://raw.githubusercontent.com/nipun2sinhala/ar-assets/main/rainbow.glb", 0, 0.5, -2);
-
-        renderer.setAnimationLoop(function () {
-          renderer.render(scene, camera);
-        });
-      }
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/loaders/GLTFLoader.js"></script>
   </body>
 </html>
