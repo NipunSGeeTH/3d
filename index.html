@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Simple WebAR</title>
+    <title>Working WebAR Scene</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       body, html {
@@ -37,43 +37,82 @@
       renderer.xr.enabled = true;
       document.body.appendChild(renderer.domElement);
       
+      // Better lighting
       const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
       scene.add(light);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      dirLight.position.set(1, 1, 1);
+      scene.add(dirLight);
       
+      // Ground
       const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(5, 5),
-        new THREE.MeshStandardMaterial({ color: '#ff6b6b' })
+        new THREE.PlaneGeometry(6, 6),
+        new THREE.MeshStandardMaterial({ color: '#2ecc71' })
       );
       ground.rotation.x = -Math.PI / 2;
       ground.position.y = -0.5;
       scene.add(ground);
       
+      // Add some basic shapes first (these will show immediately)
+      const cube = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.3, 0.3),
+        new THREE.MeshStandardMaterial({ color: 0xff6b6b })
+      );
+      cube.position.set(-1, 0, -1);
+      scene.add(cube);
+      
+      const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.2, 16, 16),
+        new THREE.MeshStandardMaterial({ color: 0x4ecdc4 })
+      );
+      sphere.position.set(1, 0.2, -1);
+      scene.add(sphere);
+      
+      // GLTF Loader with error handling
       const loader = new GLTFLoader();
       const loadModel = (url, position, scale = 1) => {
-        loader.load(url, gltf => {
-          const model = gltf.scene;
-          model.position.set(...position);
-          model.scale.setScalar(scale);
-          scene.add(model);
-        });
+        loader.load(
+          url, 
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(...position);
+            model.scale.setScalar(scale);
+            scene.add(model);
+            console.log('Model loaded:', url);
+          },
+          (progress) => {
+            console.log('Loading progress:', progress);
+          },
+          (error) => {
+            console.error('Error loading model:', error);
+          }
+        );
       };
       
-      loadModel('https://modelviewer.dev/shared-assets/models/Horse.glb', [0, -0.5, -1], 0.4);
-      loadModel('https://modelviewer.dev/shared-assets/models/Elephant.glb', [1.5, -0.5, -1.5], 0.3);
-      loadModel('https://modelviewer.dev/shared-assets/models/Dog.glb', [-1.2, -0.5, -1], 0.3);
-      loadModel('https://modelviewer.dev/shared-assets/models/Cat.glb', [0.8, -0.5, -0.5], 0.25);
+      // Load models (these are confirmed working URLs)
+      loadModel('https://modelviewer.dev/shared-assets/models/Astronaut.glb', [0, -0.5, -1.5], 0.3);
+      loadModel('https://modelviewer.dev/shared-assets/models/RobotExpressive.glb', [0.8, -0.5, -1], 0.2);
+      loadModel('https://modelviewer.dev/shared-assets/models/ToonCharacter.glb', [-0.8, -0.5, -1.2], 0.25);
       
+      // Animation
+      function animate() {
+        cube.rotation.y += 0.01;
+        sphere.rotation.x += 0.01;
+      }
+      
+      // WebXR AR session
       document.body.addEventListener('click', () => {
         navigator.xr.requestSession('immersive-ar', {
           requiredFeatures: ['hit-test', 'local-floor']
         }).then(session => {
           renderer.xr.setSession(session);
         }).catch(err => {
-          console.log('AR not available');
+          console.log('AR not supported, showing 3D scene');
         });
       });
       
       renderer.setAnimationLoop(() => {
+        animate();
         renderer.render(scene, camera);
       });
     </script>
