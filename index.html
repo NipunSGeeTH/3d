@@ -1,65 +1,87 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Multi-Object WebAR</title>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.7/dist/mindar-face-three.prod.js"></script>
+    <title>Multi-Object WebAR Scene</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
-      html, body {
+      body, html {
         margin: 0;
         overflow: hidden;
         height: 100%;
+        background: #000;
       }
       canvas {
         position: absolute;
+        top: 0;
+        left: 0;
       }
     </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js",
+          "GLTFLoader": "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js"
+        }
+      }
+    </script>
   </head>
   <body>
     <script type="module">
-      import { MindARThree } from "https://cdn.jsdelivr.net/npm/mind-ar@1.1.7/dist/mindar-face-three.prod.js";
+      import * as THREE from 'three';
+      import { GLTFLoader } from 'GLTFLoader';
 
-      const start = async () => {
-        const mindarThree = new MindARThree({
-          container: document.body,
-        });
-        const { renderer, scene, camera } = mindarThree;
+      // Scene setup
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
 
-        // Create simple 3D objects
-        const box = new THREE.Mesh(
-          new THREE.BoxGeometry(0.3, 0.3, 0.3),
-          new THREE.MeshStandardMaterial({ color: "orange" })
-        );
-        box.position.set(0.4, 0, 0);
+      // Light
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      scene.add(light);
 
-        const sphere = new THREE.Mesh(
-          new THREE.SphereGeometry(0.2),
-          new THREE.MeshStandardMaterial({ color: "skyblue" })
-        );
-        sphere.position.set(-0.4, 0, 0);
+      // Ground
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(4, 4),
+        new THREE.MeshStandardMaterial({ color: '#88cc88' })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = -0.5;
+      scene.add(ground);
 
-        const ground = new THREE.Mesh(
-          new THREE.PlaneGeometry(3, 3),
-          new THREE.MeshStandardMaterial({ color: "green" })
-        );
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = -0.3;
+      // GLTF Loader
+      const loader = new GLTFLoader();
 
-        // Add lighting
-        const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-        scene.add(light);
-
-        // Add objects
-        scene.add(box);
-        scene.add(sphere);
-        scene.add(ground);
-
-        await mindarThree.start();
-        renderer.setAnimationLoop(() => {
-          renderer.render(scene, camera);
+      const loadModel = (url, position, scale = 1) => {
+        loader.load(url, gltf => {
+          const model = gltf.scene;
+          model.position.set(...position);
+          model.scale.setScalar(scale);
+          scene.add(model);
         });
       };
-      start();
+
+      // Load models
+      loadModel('https://modelviewer.dev/shared-assets/models/House.glb', [0, -0.5, -1], 0.5);
+      loadModel('https://modelviewer.dev/shared-assets/models/Astronaut.glb', [0.6, -0.5, -1.2], 0.3);
+      loadModel('https://modelviewer.dev/shared-assets/models/Car.glb', [-0.7, -0.5, -1], 0.4);
+      loadModel('https://modelviewer.dev/shared-assets/models/RobotExpressive.glb', [0.2, -0.5, -0.5], 0.2); // pretend it's a dog
+      loadModel('https://modelviewer.dev/shared-assets/models/ToonCharacter.glb', [-0.3, -0.5, -0.5], 0.2); // pretend rainbow character
+
+      // WebXR AR session
+      document.body.addEventListener('click', () => {
+        navigator.xr.requestSession('immersive-ar', {
+          requiredFeatures: ['hit-test', 'local-floor']
+        }).then(session => {
+          renderer.xr.setSession(session);
+        });
+      });
+
+      renderer.setAnimationLoop(() => {
+        renderer.render(scene, camera);
+      });
     </script>
   </body>
 </html>
