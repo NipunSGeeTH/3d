@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>CS Student WebAR Scene</title>
+    <title>Simple WebAR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       body, html {
@@ -30,7 +30,6 @@
       import * as THREE from 'three';
       import { GLTFLoader } from 'GLTFLoader';
       
-      // Scene setup
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -38,20 +37,17 @@
       renderer.xr.enabled = true;
       document.body.appendChild(renderer.domElement);
       
-      // Light
       const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
       scene.add(light);
       
-      // Ground
       const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(6, 6),
-        new THREE.MeshStandardMaterial({ color: '#4a90e2' })
+        new THREE.PlaneGeometry(5, 5),
+        new THREE.MeshStandardMaterial({ color: '#ff6b6b' })
       );
       ground.rotation.x = -Math.PI / 2;
       ground.position.y = -0.5;
       scene.add(ground);
       
-      // GLTF Loader
       const loader = new GLTFLoader();
       const loadModel = (url, position, scale = 1) => {
         loader.load(url, gltf => {
@@ -62,21 +58,18 @@
         });
       };
       
-      // Load CS-themed models
-      loadModel('https://modelviewer.dev/shared-assets/models/RobotExpressive.glb', [0, -0.5, -1.5], 0.3);
-      loadModel('https://modelviewer.dev/shared-assets/models/Astronaut.glb', [1.2, -0.5, -1], 0.25);
-      loadModel('https://modelviewer.dev/shared-assets/models/ToonCharacter.glb', [-1, -0.5, -1.2], 0.3);
-      loadModel('https://modelviewer.dev/shared-assets/models/Car.glb', [0.8, -0.5, -2], 0.3);
-      loadModel('https://modelviewer.dev/shared-assets/models/House.glb', [-1.5, -0.5, -2.5], 0.4);
+      loadModel('https://modelviewer.dev/shared-assets/models/Horse.glb', [0, -0.5, -1], 0.4);
+      loadModel('https://modelviewer.dev/shared-assets/models/Elephant.glb', [1.5, -0.5, -1.5], 0.3);
+      loadModel('https://modelviewer.dev/shared-assets/models/Dog.glb', [-1.2, -0.5, -1], 0.3);
+      loadModel('https://modelviewer.dev/shared-assets/models/Cat.glb', [0.8, -0.5, -0.5], 0.25);
       
-      // WebXR AR session
       document.body.addEventListener('click', () => {
         navigator.xr.requestSession('immersive-ar', {
           requiredFeatures: ['hit-test', 'local-floor']
         }).then(session => {
           renderer.xr.setSession(session);
         }).catch(err => {
-          console.log('AR not supported, showing 3D scene');
+          console.log('AR not available');
         });
       });
       
