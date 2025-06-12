@@ -2,65 +2,251 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Multi-Object WebXR AR</title>
+    <title>AR Multi Object</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
+      /* Basic reset and font application for the body */
       body {
         margin: 0;
-        overflow: hidden;
+        overflow: hidden; /* Prevent scrolling, as canvas should fill the view */
+        font-family: 'Inter', sans-serif; /* Use the Inter font for a modern look */
+        background-color: #f0f0f0; /* Light background for the page itself */
       }
+
+      /* Style for the canvas element, ensuring it fills the entire viewport */
       canvas {
-        display: block;
+        display: block; /* Remove extra space below canvas */
+        width: 100%;
+        height: 100vh; /* Make the canvas take up the full viewport height */
+        background-color: transparent; /* Ensure canvas background is transparent for AR */
+      }
+
+      /* Styles for the AR button, making it prominent and touch-friendly */
+      #ar-button {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%); /* Center the button horizontally */
+        padding: 12px 24px;
+        background-color: #3b82f6; /* A nice blue background for the button */
+        color: white;
+        border: none;
+        border-radius: 8px; /* Rounded corners for a modern feel */
+        font-size: 16px;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Soft shadow for depth */
+        transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth hover effects */
+        z-index: 10; /* Ensure button is above other elements */
+      }
+
+      #ar-button:hover {
+        background-color: #2563eb; /* Darker blue on hover */
+        transform: translateX(-50%) translateY(-2px); /* Slight lift effect on hover */
+      }
+
+      /* Styles for a transient message box to provide user feedback */
+      #message-box {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%); /* Center the message box */
+          background-color: rgba(0, 0, 0, 0.75); /* Semi-transparent dark background */
+          color: white;
+          padding: 20px 30px;
+          border-radius: 10px;
+          text-align: center;
+          display: none; /* Hidden by default, shown via JavaScript */
+          z-index: 1000; /* Ensure it's on top of everything */
+          opacity: 0; /* Start with 0 opacity for fade-in/out */
+          transition: opacity 0.5s ease-in-out; /* Smooth fade transition */
       }
     </style>
+    <!-- Link to Google Fonts for the Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
   </head>
   <body>
+    <!-- Message box element for user feedback, initially hidden -->
+    <div id="message-box"></div>
+
     <script type="module">
+      // Import necessary modules from Three.js CDN
       import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
       import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js';
       import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/webxr/ARButton.js';
 
+      // Declare global variables for Three.js components
       let camera, scene, renderer;
+      let arButton; // Reference to the AR button DOM element
+      let messageBox; // Reference to the message box DOM element
 
-      init();
+      // Ensure that the entire DOM is loaded before initializing the 3D scene and AR
+      window.onload = function () {
+        init();      // Initialize the Three.js scene and AR environment
+        animate();   // Start the animation loop
+      };
 
+      /**
+       * Initializes the Three.js scene, renderer, camera, and WebXR components.
+       */
       function init() {
+        // Get a reference to the message box for displaying feedback
+        messageBox = document.getElementById('message-box');
+        showMessage("Loading AR application...", 2000); // Initial message
+
+        // Create a new Three.js scene where all objects will reside
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera();
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.xr.enabled = true;
-        document.body.appendChild(renderer.domElement);
-
-        // 👇 THIS will show the AR button!
-        document.body.appendChild(
-          ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] })
+        // Set up the perspective camera. In AR, the XR session typically manages
+        // the camera's actual pose, but these parameters are good defaults for
+        // a standard camera and for initial setup.
+        camera = new THREE.PerspectiveCamera(
+          75, // Field of view (FOV): how much of the scene is visible
+          window.innerWidth / window.innerHeight, // Aspect ratio: width divided by height
+          0.1, // Near clipping plane: objects closer than this won't be rendered
+          1000 // Far clipping plane: objects further than this won't be rendered
         );
 
+        // Set up the WebGL renderer
+        renderer = new THREE.WebGLRenderer({
+          antialias: true, // Smooths edges of objects
+          alpha: true      // Allows for transparent background, crucial for AR overlay
+        });
+        renderer.setPixelRatio(window.devicePixelRatio); // Adjusts render quality for high-DPI screens
+        renderer.setSize(window.innerWidth, window.innerHeight); // Set renderer size to full window
+        renderer.xr.enabled = true; // Crucially, enable WebXR functionality for AR
+        document.body.appendChild(renderer.domElement); // Add the renderer's canvas to the DOM
+
+        // --- AR Button Setup ---
+        // Create the AR button. The 'requiredFeatures' array specifies the AR capabilities needed.
+        // 'hit-test' allows the AR session to detect surfaces for placing virtual objects.
+        // The ARButton utility automatically handles the XR session lifecycle (start, end).
+        arButton = ARButton.createButton(renderer, {
+          requiredFeatures: ['hit-test'],
+          // Optional: 'dom-overlay' can be used if you want to place HTML content directly
+          // over the AR view, but it requires specific CSS setup.
+          // domOverlay: { root: document.body }
+        });
+        arButton.id = 'ar-button'; // Assign an ID to the button for CSS styling
+        document.body.appendChild(arButton);
+
+        // Add event listeners to the AR button and XR session for user feedback
+        arButton.addEventListener('click', () => {
+            showMessage("Attempting to start AR session... Please grant camera permissions.", 3000);
+        });
+
+        // Listen for the AR session to start
+        renderer.xr.addEventListener('sessionstart', () => {
+            showMessage("AR session started! Look around for models.", 3000);
+            // Optionally, place models relative to a hit-test result here if you want dynamic placement
+        });
+
+        // Listen for the AR session to end
+        renderer.xr.addEventListener('sessionend', () => {
+            showMessage("AR session ended.", 3000);
+        });
+
+        // --- Lighting ---
+        // Add a hemisphere light to illuminate the scene naturally, simulating ambient light
+        // from the sky (0xffffff) and the ground (0xbbbbff).
         const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
         scene.add(light);
 
+        // --- Load 3D models ---
         const loader = new GLTFLoader();
 
-        function loadModel(url, position, scale = 0.5) {
-          loader.load(url, function (gltf) {
-            const model = gltf.scene;
-            model.position.copy(position);
-            model.scale.set(scale, scale, scale);
-            scene.add(model);
-          });
+        /**
+         * Loads and adds a GLTF model to the Three.js scene.
+         * Includes progress and error handling.
+         * @param {string} url - The URL of the GLB/GLTF model file.
+         * @param {number} x - The X position of the model in scene coordinates.
+         * @param {number} y - The Y position of the model in scene coordinates.
+         * @param {number} z - The Z position of the model in scene coordinates.
+         * @param {number} [s=0.5] - The uniform scale factor for the model.
+         */
+        function addModel(url, x, y, z, s = 0.5) {
+          loader.load(
+            url,
+            // Success callback: when the model is loaded
+            (gltf) => {
+              const model = gltf.scene; // Get the loaded scene from the GLTF
+              model.position.set(x, y, z); // Set its position
+              model.scale.set(s, s, s);   // Set its scale
+              scene.add(model);           // Add the model to the scene
+              showMessage(`Model loaded: ${url.split('/').pop().split('.')[0]}`, 2000);
+            },
+            // Progress callback (optional): fired during loading
+            (xhr) => {
+              console.log(`Loading ${url.split('/').pop()}: ` + (xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+            // Error callback: fired if model loading fails
+            (error) => {
+              console.error(`Error loading model from ${url}:`, error);
+              showMessage(`Failed to load model: ${url.split('/').pop().split('.')[0]}`, 4000);
+            }
+          );
         }
 
-        // Place multiple 3D models around origin
-        loadModel("https://modelviewer.dev/shared-assets/models/House.glb", new THREE.Vector3(0, 0, -1));
-        loadModel("https://modelviewer.dev/shared-assets/models/Ambulance.glb", new THREE.Vector3(0.5, 0, -1.2));
-        loadModel("https://modelviewer.dev/shared-assets/models/Astronaut.glb", new THREE.Vector3(-0.5, 0, -1.2));
-        loadModel("https://raw.githubusercontent.com/nipun2sinhala/ar-assets/main/rainbow.glb", new THREE.Vector3(0, 0.5, -2));
+        // Add multiple 3D models to the scene with specified positions and scales.
+        // These positions are relative to the AR reference space origin once an AR session starts.
+        // If no AR session, they are relative to the camera's initial position.
+        addModel('https://modelviewer.dev/shared-assets/models/House.glb', 0, 0, -1);
+        addModel('https://modelviewer.dev/shared-assets/models/Ambulance.glb', 0.6, 0, -1.4);
+        addModel('https://modelviewer.dev/shared-assets/models/Astronaut.glb', -0.6, 0, -1.4);
+        addModel('https://raw.githubusercontent.com/nipun2sinhala/ar-assets/main/rainbow.glb', 0, 0.5, -2);
 
-        renderer.setAnimationLoop(() => {
-          renderer.render(scene, camera);
-        });
+        // --- Window Resizing ---
+        // Add an event listener to adjust the camera aspect ratio and renderer size
+        // whenever the browser window is resized. This is crucial for responsiveness.
+        window.addEventListener('resize', onWindowResize, false);
+      }
+
+      /**
+       * Handles window resizing events to ensure the camera and renderer adjust correctly.
+       */
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight; // Update camera aspect ratio
+        camera.updateProjectionMatrix(); // Recalculate camera's projection matrix
+        renderer.setSize(window.innerWidth, window.innerHeight); // Resize the renderer
+      }
+
+      /**
+       * The main animation loop.
+       * renderer.setAnimationLoop() automatically calls render() on each XR frame when active.
+       */
+      function animate() {
+        // This function sets up the animation loop for both standard rendering
+        // and WebXR rendering. In an active XR session, renderer.setAnimationLoop
+        // will handle the requestAnimationFrame based on the XR device's frame rate.
+        renderer.setAnimationLoop(render);
+      }
+
+      /**
+       * Renders the Three.js scene with the camera.
+       * This function is called continuously by the animation loop.
+       */
+      function render() {
+        // In AR mode, the camera's pose (position and orientation) is automatically
+        // updated by the WebXR session, so we just need to call render.
+        renderer.render(scene, camera);
+      }
+
+      /**
+       * Displays a temporary message to the user via the message box.
+       * @param {string} message - The text message to display.
+       * @param {number} duration - How long (in milliseconds) the message should be visible.
+       */
+      function showMessage(message, duration = 3000) {
+          messageBox.textContent = message; // Set the message text
+          messageBox.style.display = 'block'; // Make the message box visible
+          messageBox.style.opacity = '1'; // Fade in
+
+          // Set a timeout to hide and fade out the message after the specified duration
+          setTimeout(() => {
+              messageBox.style.opacity = '0'; // Start fading out
+              setTimeout(() => {
+                  messageBox.style.display = 'none'; // Fully hide after fade out
+              }, 500); // Matches CSS transition duration for opacity
+          }, duration);
       }
     </script>
   </body>
