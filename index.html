@@ -2,13 +2,15 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Multi-Object AR Viewer</title>
-    <meta name="description" content="Multi-Object AR Viewer using A-Frame" />
+    <title>Instant AR Viewer</title>
+    <meta
+      name="description"
+      content="Instant AR Viewer using A-Frame - Objects appear immediately."
+    />
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-xr-hit-test-component@0.5.2/dist/aframe-xr-hit-test-component.min.js"></script>
   </head>
   <body>
-    <a-scene webxr="requiredFeatures: hit-test,local-floor">
+    <a-scene webxr="requiredFeatures: local-floor">
       <a-assets>
         <a-asset-item
           id="house"
@@ -28,42 +30,34 @@
         ></a-asset-item>
       </a-assets>
 
-      <a-camera position="0 1.2 0"></a-camera>
+      <a-camera>
+        <a-entity position="0 -1 -2">
+          <a-entity
+            gltf-model="#house"
+            position="0 0 -1.5"
+            scale="0.08 0.08 0.08"
+          ></a-entity>
 
-      <a-entity
-        id="reticle"
-        xr-hit-test="type: 'plane'"
-        gltf-model="https://cdn.glitch.global/e6a69586-9a39-403d-8c46-95333f23a9e7/reticle.glb?v=1718204698267"
-        scale="0.8 0.8 0.8"
-        visible="false"
-      ></a-entity>
+          <a-entity
+            gltf-model="#rainbow"
+            position="0 1.2 0"
+            scale="0.2 0.2 0.2"
+          ></a-entity>
 
-      <a-entity id="objects-container" visible="false">
-        <a-entity
-          gltf-model="#house"
-          position="0 0 -1.5"
-          scale="0.08 0.08 0.08"
-        ></a-entity>
+          <a-entity
+            gltf-model="#tree"
+            position="-1.5 0 0"
+            scale="0.4 0.4 0.4"
+          ></a-entity>
 
-        <a-entity
-          gltf-model="#rainbow"
-          position="0 1 0"
-          scale="0.2 0.2 0.2"
-        ></a-entity>
-
-        <a-entity
-          gltf-model="#tree"
-          position="-1.5 0 0"
-          scale="0.4 0.4 0.4"
-        ></a-entity>
-
-        <a-entity
-          gltf-model="#dog"
-          position="1.5 0 0.5"
-          scale="0.003 0.003 0.003"
-          rotation="0 45 0"
-        ></a-entity>
-      </a-entity>
+          <a-entity
+            gltf-model="#dog"
+            position="1.5 0 0.5"
+            scale="0.003 0.003 0.003"
+            rotation="0 45 0"
+          ></a-entity>
+        </a-entity>
+      </a-camera>
 
       <a-light type="ambient" color="#FFF" intensity="0.7"></a-light>
       <a-light
@@ -73,61 +67,5 @@
         intensity="0.6"
       ></a-light>
     </a-scene>
-
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const sceneEl = document.querySelector("a-scene");
-        const reticle = document.querySelector("#reticle");
-        const objectsContainer = document.querySelector("#objects-container");
-        let hasPlacedObjects = false;
-
-        sceneEl.addEventListener("enter-vr", () => {
-          if (sceneEl.is("ar-mode")) {
-            reticle.setAttribute("visible", "true");
-          }
-        });
-
-        reticle.addEventListener("select", () => {
-          if (!hasPlacedObjects) {
-            objectsContainer.setAttribute("position", reticle.getAttribute("position"));
-            objectsContainer.setAttribute("visible", "true");
-            hasPlacedObjects = true;
-            reticle.setAttribute("visible", "false");
-          }
-        });
-      });
-    </script>
-
-    <div
-      id="ar-prompt"
-      style="
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 10px 20px;
-        background-color: #fff;
-        border-radius: 5px;
-        text-align: center;
-        font-family: sans-serif;
-        color: #333;
-        display: none;
-      "
-    >
-      Point your camera at a surface and tap to place the objects.
-    </div>
-
-    <script>
-       // Show the prompt when AR mode is active
-      document.querySelector('a-scene').addEventListener('enter-vr', function () {
-        if (this.is('ar-mode')) {
-          document.querySelector('#ar-prompt').style.display = 'block';
-        }
-      });
-       // Hide prompt after placement
-       document.querySelector('#reticle').addEventListener('select', function () {
-           document.querySelector('#ar-prompt').style.display = 'none';
-       });
-    </script>
   </body>
 </html>
