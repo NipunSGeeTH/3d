@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Working WebAR Scene</title>
+    <title>3D Letters in AR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       body, html {
@@ -20,7 +20,8 @@
       {
         "imports": {
           "three": "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js",
-          "GLTFLoader": "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js"
+          "FontLoader": "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/FontLoader.js",
+          "TextGeometry": "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/geometries/TextGeometry.js"
         }
       }
     </script>
@@ -28,22 +29,22 @@
   <body>
     <script type="module">
       import * as THREE from 'three';
-      import { GLTFLoader } from 'GLTFLoader';
-      
+      import { FontLoader } from 'FontLoader';
+      import { TextGeometry } from 'TextGeometry';
+
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.xr.enabled = true;
       document.body.appendChild(renderer.domElement);
-      
-      // Better lighting
-      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-      scene.add(light);
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
-      dirLight.position.set(1, 1, 1);
+
+      // Lights
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(2, 2, 2);
       scene.add(dirLight);
-      
+
       // Ground
       const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(6, 6),
@@ -52,65 +53,44 @@
       ground.rotation.x = -Math.PI / 2;
       ground.position.y = -0.5;
       scene.add(ground);
-      
-      // Add some basic shapes first (these will show immediately)
-      const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(0.3, 0.3, 0.3),
-        new THREE.MeshStandardMaterial({ color: 0xff6b6b })
-      );
-      cube.position.set(-1, 0, -1);
-      scene.add(cube);
-      
-      const sphere = new THREE.Mesh(
-        new THREE.SphereGeometry(0.2, 16, 16),
-        new THREE.MeshStandardMaterial({ color: 0x4ecdc4 })
-      );
-      sphere.position.set(1, 0.7, -1);
-      scene.add(sphere);
-      
-      // GLTF Loader with error handling
-      const loader = new GLTFLoader();
-      const loadModel = (url, position, scale = 1) => {
-        loader.load(
-          url, 
-          (gltf) => {
-            const model = gltf.scene;
-            model.position.set(...position);
-            model.scale.setScalar(scale);
-            scene.add(model);
-            console.log('Model loaded:', url);
-          },
-          (progress) => {
-            console.log('Loading progress:', progress);
-          },
-          (error) => {
-            console.error('Error loading model:', error);
-          }
-        );
-      };
-      
-      // Load models (these are confirmed working URLs)
-      loadModel('https://modelviewer.dev/shared-assets/models/Astronaut.glb', [0, -0.5, -1.5], 0.3);
-      loadModel('https://modelviewer.dev/shared-assets/models/RobotExpressive.glb', [0.8, -0.5, -1], 0.2);
-      loadModel('https://modelviewer.dev/shared-assets/models/ToonCharacter.glb', [-0.8, -0.5, -1.2], 0.25);
-      
-      // Animation
-      function animate() {
-        cube.rotation.y += 0.01;
-        sphere.rotation.x += 0.01;
-      }
-      
-      // WebXR AR session
+
+      // Text
+      const loader = new FontLoader();
+      loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font) => {
+        const makeLetter = (char, x, color = 0xffcc00) => {
+          const geometry = new TextGeometry(char, {
+            font: font,
+            size: 0.3,
+            height: 0.05,
+          });
+          const material = new THREE.MeshStandardMaterial({ color });
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.position.set(x, 0, -1.2);
+          scene.add(mesh);
+        };
+
+        // Add letters
+        makeLetter('C', -1.2);
+        makeLetter('S', -0.6, 0x00d2ff);
+        makeLetter('E', 0, 0xff5f7e);
+        makeLetter('2', 0.6, 0x8e44ad);
+        makeLetter('3', 1.2, 0x27ae60);
+      });
+
+      // Animate
+      function animate() {}
+
+      // Start AR on click
       document.body.addEventListener('click', () => {
         navigator.xr.requestSession('immersive-ar', {
           requiredFeatures: ['hit-test', 'local-floor']
         }).then(session => {
           renderer.xr.setSession(session);
         }).catch(err => {
-          console.log('AR not supported, showing 3D scene');
+          console.log('AR not supported or permissions not granted.');
         });
       });
-      
+
       renderer.setAnimationLoop(() => {
         animate();
         renderer.render(scene, camera);
